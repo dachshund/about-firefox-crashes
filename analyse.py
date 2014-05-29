@@ -37,7 +37,7 @@ def get_extensions(tree):
 
 
 def walk_crash_report(report_id):
-    extensions_in_all_reports = None
+    extensions = {}
 
     this_report_url = REPORT_URI + report_id
     this_report_tree = get_tree(this_report_url)
@@ -55,25 +55,40 @@ def walk_crash_report(report_id):
     more_reports_tree = get_tree(more_reports_url)
     more_reports_list = more_reports_tree.select('#reportsList')[0].\
                         find('tbody').select('tr')
+    more_reports_counter = 0
+    skipped_reports_counter = 0
 
     for that_report in more_reports_list:
-        columns = that_report.select('td')
-        date_processed, duplicate_of, product, version, build, \
-        os_and_version, cpu_name, reason, address, uptime, install_time, \
-        user_comments = [ column.text.strip() for column in columns ]
+        more_reports_counter += 1
 
-        that_report_url = BASE_URI + columns[0].find('a')['href']
-        that_report_tree = get_tree(that_report_url)
-        that_report_extensions = get_extensions(that_report_tree)
-        that_report_extension_names = set(that_report_extensions.keys())
+        try:
+            columns = that_report.select('td')
+            date_processed, duplicate_of, product, version, build, \
+            os_and_version, cpu_name, reason, address, uptime, install_time, \
+            user_comments = [ column.text.strip() for column in columns ]
 
-        if extensions_in_all_reports is None:
-            extensions_in_all_reports = that_report_extension_names
+            that_report_url = BASE_URI + columns[0].find('a')['href']
+            that_report_tree = get_tree(that_report_url)
+            that_report_extensions = get_extensions(that_report_tree)
+        except:
+            skipped_reports_counter += 1
+            print('Skipping report #{}'.format(more_reports_counter))
         else:
-            extensions_in_all_reports &= that_report_extension_names
+            for name, versions in that_report_extensions.items():
+                extensions[name] = extensions.get(name, []) + list(versions)
+
+    processed_reports_counter = more_reports_counter - skipped_reports_counter
+    extensions_in_all_reports = {}
+
+    for name, versions in extensions.items():
+        # >=, not ==, because there are extensions with the same name, but
+        # different versions, on the same computer 
+        if len(versions) >= processed_reports_counter:
+            extensions_in_all_reports[name] = set(versions)
 
     print('Extensions in all reports with the same signature ({}): {}'.\
-          format(product_signature_query, extensions_in_all_reports))
+          format(more_reports_url, extensions_in_all_reports))
+    print('')
 
 
 def main(report_ids_filepath):
