@@ -3,6 +3,7 @@
 
 # 1st-party
 import sys
+import time
 import urlparse
 
 # 3rd-party
@@ -38,8 +39,13 @@ def get_extensions(tree):
 def walk_crash_report(report_id):
     extensions_in_all_reports = None
 
+    this_report_url = REPORT_URI + report_id
+    this_report_tree = get_tree(this_report_url)
+    # Sleep for some time until a possibly new report is generated.
+    time.sleep(45)
+    this_report_tree = get_tree(this_report_url)
+
     # TODO: better error reporting when report_id is invalid
-    this_report_tree = get_tree(REPORT_URI + report_id)
     product_signature_url = \
         this_report_tree.select('a.sig-overview')[0]['href']
     product_signature_query = urlparse.urlparse(product_signature_url).query
