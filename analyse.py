@@ -2,35 +2,18 @@
 
 
 # 1st-party
+import sys
 import urlparse
 
 # 3rd-party
 from bs4 import BeautifulSoup
 import requests
 
+
 BASE_URI = 'https://crash-stats.mozilla.com'
 REPORT_URI = BASE_URI + '/report/index/'
 MORE_REPORTS_URI = BASE_URI + '/report/list/partials/reports/'
 
-REPORT_IDS = (
-    # "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:29.0) Gecko/20100101 Firefox/29.0"
-    'bp-b4a4631b-92dd-4c4b-945c-8c6a32140528',
-    'bp-f69284d0-288a-4eba-8cb3-f06e12140527',
-    'bp-30e11dc2-cbe3-4d2a-98e7-720182140523',
-    'bp-71ee645e-e5b6-4fab-8caa-1a6052140521'
-    # "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:29.0) Gecko/20100101 Firefox/29.0"
-    'bp-acbfa9e1-bdc6-4ab2-99bd-24a382140529',
-    'bp-af7ecd8a-f17b-45d5-8bd8-e1f5f2140523',
-    'bp-984f1b98-80d1-4c4a-a974-22b6c2140521',
-    'bp-8e84e594-233d-4ade-bf21-5497f2140515',
-    'bp-b6535690-3cc1-4022-be18-d71e62140510',
-    'bp-ecdd6979-4fa3-4849-b3ec-09f842140507',
-    'bp-b9c77c8f-3cb3-488f-b494-0a2442140504',
-    'bp-3b02d1ff-9a20-449c-81c6-b6bac2140502',
-    'bp-fa351541-2837-48e2-9054-274842140502',
-    'bp-c4277790-22d1-4643-86fc-23ce32140430',
-    'bp-91733d36-a8cc-4118-ab80-776652140429'
-)
 
 def get_tree(url):
     return BeautifulSoup(requests.get(url).text)
@@ -55,6 +38,7 @@ def get_extensions(tree):
 def walk_crash_report(report_id):
     extensions_in_all_reports = None
 
+    # TODO: better error reporting when report_id is invalid
     this_report_tree = get_tree(REPORT_URI + report_id)
     product_signature_url = \
         this_report_tree.select('a.sig-overview')[0]['href']
@@ -86,12 +70,15 @@ def walk_crash_report(report_id):
           format(product_signature_query, extensions_in_all_reports))
 
 
-def main():
-    for report_id in REPORT_IDS:
-        walk_crash_report(report_id)
+def main(report_ids_filepath):
+    with open(report_ids_filepath) as report_ids_file:
+        for report_id in report_ids_file:
+            walk_crash_report(report_id)
 
 
 if __name__ == '__main__':
-    main()
+    assert len(sys.argv) == 2
+    report_ids_filepath = sys.argv[1]
+    main(report_ids_filepath)
 
 
